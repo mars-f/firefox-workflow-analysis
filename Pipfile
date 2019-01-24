@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+jupyter = "*"
+requests = "*"
+mozautomation = "*"
+cachecontrol = {extras = ["filecache"],version = "*"}
+tqdm = "*"
+numpy = "*"
+seaborn = "*"
+pandas = "*"
+
+[requires]
+python_version = "3.6"
+
+[dev-packages]
