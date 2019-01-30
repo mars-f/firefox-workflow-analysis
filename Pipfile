@@ -12,6 +12,7 @@ tqdm = "*"
 numpy = "*"
 seaborn = "*"
 pandas = "*"
+pyarrow = "*"
 
 [requires]
 python_version = "3.6"
