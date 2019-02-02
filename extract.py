@@ -44,8 +44,10 @@ def get_nightly_builds(from_datestr="2018-10", to_datestr="2018-11"):
             "target.channel": "nightly",
             "source.product": "firefox",
             "target.locale": "en-US",
-            "gt_download.date": from_datestr,
-            "lt_download.date": to_datestr,
+            # Caution: use build.date because download.date is crazy for dates before
+            # 2016.
+            "gt_build.date": from_datestr,
+            "lt_build.date": to_datestr,
             "_sort": "-download.date",
             "_fields": "build.id,source.revision,download.date",
             # "_limit": 10,
@@ -122,8 +124,8 @@ def main():
 
     df = pd.DataFrame()
 
-    from_date = "2017-10"
-    to_date = "2017-11"
+    from_date = "2015-10"
+    to_date = "2015-11"
 
     builds = get_nightly_builds(from_date, to_date)
     build_count = len(builds)
