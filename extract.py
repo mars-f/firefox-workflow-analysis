@@ -124,51 +124,6 @@ def fetch_bug_creation_times(bug_ids):
     return df
 
 
-def main():
-    logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
-
-    df = pd.DataFrame()
-
-    from_date = "2017-02"
-    to_date = "2017-03"
-
-    print(f"Process builds from {from_date} to {to_date}")
-    builds = get_nightly_builds(from_date, to_date)
-    build_count = len(builds)
-
-    print(f"Found {build_count} builds")
-    print("Extracting build data from sources")
-
-    for target_build, prev_build in tqdm.tqdm(
-        zip(islice(builds, 0, None), islice(builds, 1, None)),
-        desc="builds",
-        total=build_count,
-    ):
-        build_id = target_build["build"]["id"]
-        build_rev = target_build["source"]["revision"]
-        prev_rev = prev_build["source"]["revision"]
-
-        log.debug("Processing build", build_id)
-        try:
-            cd = get_data_for_commit_range(build_rev, prev_rev)
-        except RetrievalError as e:
-            log.info("Skipping build %s" % target_build)
-            log.info("Reason: %s" % e)
-            continue
-
-        cd["nightly_build_id"] = build_id
-        cd["nightly_publish_time"] = pd.to_datetime(target_build["download"]["date"])
-        df = pd.concat([df, cd])
-
-    print()
-    print(f"Processed {df.shape[0]} records with {df.shape[1]} columns")
-    print(f"Columns: {df.columns.to_list()}")
-
-    outfile_name = "output.parq"
-    df.to_parquet(outfile_name)
-    print(f"Wrote {outfile_name}")
-
-
 def get_data_for_commit_range(nightly_changeset_id, prev_nightly_changeset_id):
     """Return a DataFrame with workflow data between commits X and Y."""
 
@@ -231,6 +186,51 @@ def get_data_for_commit_range(nightly_changeset_id, prev_nightly_changeset_id):
     df = public_bugs
 
     return df
+
+
+def main():
+    logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
+
+    df = pd.DataFrame()
+
+    from_date = "2016-02"
+    to_date = "2016-03"
+
+    print(f"Process builds from {from_date} to {to_date}")
+    builds = get_nightly_builds(from_date, to_date)
+    build_count = len(builds)
+
+    print(f"Found {build_count} builds")
+    print("Extracting build data from sources")
+
+    for target_build, prev_build in tqdm.tqdm(
+        zip(islice(builds, 0, None), islice(builds, 1, None)),
+        desc="builds",
+        total=build_count,
+    ):
+        build_id = target_build["build"]["id"]
+        build_rev = target_build["source"]["revision"]
+        prev_rev = prev_build["source"]["revision"]
+
+        log.debug("Processing build", build_id)
+        try:
+            cd = get_data_for_commit_range(build_rev, prev_rev)
+        except RetrievalError as e:
+            log.info("Skipping build %s" % target_build)
+            log.info("Reason: %s" % e)
+            continue
+
+        cd["nightly_build_id"] = build_id
+        cd["nightly_publish_time"] = pd.to_datetime(target_build["download"]["date"])
+        df = pd.concat([df, cd])
+
+    print()
+    print(f"Processed {df.shape[0]} records with {df.shape[1]} columns")
+    print(f"Columns: {df.columns.to_list()}")
+
+    outfile_name = "output.parq"
+    df.to_parquet(outfile_name)
+    print(f"Wrote {outfile_name}")
 
 
 class RetrievalError(Exception):
