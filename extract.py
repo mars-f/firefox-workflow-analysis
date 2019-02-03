@@ -34,6 +34,11 @@ BUILDHUB_URL = "https://buildhub.prod.mozaws.net/v1"
 # We use the ActiveData warehouse service to give us bug records.  Very snappy.
 ACTIVEDATA_URL = "https://activedata-public.devsvcprod.mozaws.net/query"
 
+# Use a requests session to store default values
+http = requests.Session()
+# Set a friendly User Agent string
+http.headers.update({"User-Agent": "firefox-eng-metrics mars@mozilla.com"})
+
 
 def get_nightly_builds(from_datestr="2018-10", to_datestr="2018-11"):
     """Return nightly build data for all builds."""
@@ -62,7 +67,7 @@ def get_pushes_in_range(from_changeset, to_changeset):
     """Return a list of pushes between changesets X and Y."""
     # See https://mozilla-version-control-tools.readthedocs.io/en/latest/hgmo/pushlog.html#hgweb-commands for the URL structure.
     url = f"{HGMO_URL}/mozilla-central/json-pushes/?fromchange={from_changeset}&tochange={to_changeset}&version=2"
-    r = requests.get(url)
+    r = http.get(url)
     r.raise_for_status()
 
     # Munge the push structure from a nested structure with push IDs as dict keys to
@@ -77,7 +82,7 @@ def get_pushes_in_range(from_changeset, to_changeset):
 
 def fetch_rev_summary(rev_id):
     """Return the commit summary for the given changeset ID."""
-    r = requests.get(f"{LOCAL_HG_SERVER}/json-rev/{rev_id}")
+    r = http.get(f"{LOCAL_HG_SERVER}/json-rev/{rev_id}")
     r.raise_for_status()
     return r.json()["desc"]
 
@@ -106,7 +111,7 @@ def fetch_bug_creation_times(bug_ids):
     }
     # Note that the bug list we ask for is allowed to be large.  The upper limit on
     # ActiveData responses is 50K records!
-    r = requests.post(ACTIVEDATA_URL, json=query)
+    r = http.post(ACTIVEDATA_URL, json=query)
     if not r.ok:
         raise RetrievalError(r.content)
 
@@ -120,13 +125,14 @@ def fetch_bug_creation_times(bug_ids):
 
 
 def main():
-    logging.basicConfig(stream=sys.stdout)
+    logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 
     df = pd.DataFrame()
 
-    from_date = "2015-10"
-    to_date = "2015-11"
+    from_date = "2017-02"
+    to_date = "2017-03"
 
+    print(f"Process builds from {from_date} to {to_date}")
     builds = get_nightly_builds(from_date, to_date)
     build_count = len(builds)
 
@@ -146,8 +152,8 @@ def main():
         try:
             cd = get_data_for_commit_range(build_rev, prev_rev)
         except RetrievalError as e:
-            log.warning("Skipping build %s" % target_build)
-            log.warning("Reason: %s" % e)
+            log.info("Skipping build %s" % target_build)
+            log.info("Reason: %s" % e)
             continue
 
         cd["nightly_build_id"] = build_id
