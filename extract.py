@@ -193,8 +193,9 @@ def main():
 
     df = pd.DataFrame()
 
-    from_date = "2016-02"
-    to_date = "2016-03"
+    from_date = "2017-02"
+    to_date = "2017-03"
+    outfile_name = "data/nightly-{}.parq".format(from_date.replace('-', ''))
 
     print(f"Process builds from {from_date} to {to_date}")
     builds = get_nightly_builds(from_date, to_date)
@@ -228,7 +229,6 @@ def main():
     print(f"Processed {df.shape[0]} records with {df.shape[1]} columns")
     print(f"Columns: {df.columns.to_list()}")
 
-    outfile_name = "output.parq"
     df.to_parquet(outfile_name)
     print(f"Wrote {outfile_name}")
 
