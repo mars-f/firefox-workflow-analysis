@@ -118,7 +118,7 @@ def fetch_bug_creation_times(bug_ids):
     df = pd.DataFrame(r.json()["data"], columns=["bug", "creation_ts"])
 
     # Convert to Pandas datetimes
-    df["bug_creation_time"] = pd.to_datetime(df["creation_ts"], unit="ms")
+    df["bug_creation_time"] = pd.to_datetime(df["creation_ts"], unit="ms", utc=True)
     df = df.drop(columns="creation_ts")
 
     return df
@@ -148,9 +148,9 @@ def get_data_for_commit_range(nightly_changeset_id, prev_nightly_changeset_id):
 
     # Convert push dates from Unix time to datetime
     df["changeset_pushtime"] = df["changeset_data_date"].apply(
-        lambda t: pd.to_datetime(t, unit="s")
+        lambda t: pd.to_datetime(t, unit="s", utc=True)
     )
-    df = df.drop(columns="changeset_data_date")
+    df = df.rename(columns={"changeset_data_date": "changeset_pushtime_unix"})
 
     # Add changeset summaries
     log.debug("Getting changeset summaries")
