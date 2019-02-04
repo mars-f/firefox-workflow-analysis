@@ -7,7 +7,7 @@ name = "pypi"
 jupyter = "*"
 requests = "*"
 mozautomation = "*"
-cachecontrol = {version = "*",extras = ["filecache"]}
+cachecontrol = {extras = ["filecache"],version = "*"}
 tqdm = "*"
 numpy = "*"
 seaborn = "*"
@@ -15,6 +15,7 @@ pandas = "*"
 pyarrow = "*"
 kinto-http = "*"
 statsmodels = "*"
+nbconvert = "*"
 
 [requires]
 python_version = "3.6"
