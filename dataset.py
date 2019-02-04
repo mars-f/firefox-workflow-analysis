@@ -6,8 +6,9 @@ Extract data about Mozilla's engineering workflow from various tool systems.
 """
 
 import logging
+from pathlib import Path
 import sys
-from itertools import islice
+from itertools import islice, product
 
 import pandas as pd
 import numpy as np
@@ -38,6 +39,27 @@ ACTIVEDATA_URL = "https://activedata-public.devsvcprod.mozaws.net/query"
 http = requests.Session()
 # Set a friendly User Agent string
 http.headers.update({"User-Agent": "firefox-eng-metrics mars@mozilla.com"})
+
+
+class DataSet:
+    """A dataset we want to work with."""
+
+    raw_datapath = Path("data")
+    dataset_filetmpl = "nightly-{}.parq"
+
+    def __init__(self, from_date, to_date):
+        self.from_date = from_date
+        self.to_date = to_date
+
+    @property
+    def filepath(self):
+        # Format for year is "yyyy" and month is "MM".
+        datestr = self.from_date.replace("-", "")
+        fn = Path(self.dataset_filetmpl.format(datestr))
+        return self.raw_datapath / fn
+
+    def exists(self):
+        return self.filepath.exists()
 
 
 def get_nightly_builds(from_datestr="2018-10", to_datestr="2018-11"):
@@ -188,25 +210,36 @@ def get_data_for_commit_range(nightly_changeset_id, prev_nightly_changeset_id):
     return df
 
 
-def main():
-    logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
+def dataset_data():
+    """Return a list of DataSet objects that we want to work with."""
+    years = (2016, 2017, 2018)
+    months = ("01", "02", "03", "04")
 
+    # Generate from/to month pairs
+    spans = zip(islice(months, 0, None), islice(months, 1, None))
+    # Each year has each of the sets
+    dates = product(years, spans)
+
+    sets = []
+    for year, (from_month, to_month) in dates:
+        from_str = f"{year}-{from_month}"
+        to_str = f"{year}-{to_month}"
+        sets.append(DataSet(from_str, to_str))
+
+    return sets
+
+
+def make_dataset(from_date, to_date, outfile_name):
+    """Build a dataset and save it to disk."""
     df = pd.DataFrame()
-
-    from_date = "2017-02"
-    to_date = "2017-03"
-    outfile_name = "data/nightly-{}.parq".format(from_date.replace('-', ''))
-
     print(f"Process builds from {from_date} to {to_date}")
     builds = get_nightly_builds(from_date, to_date)
     build_count = len(builds)
-
     print(f"Found {build_count} builds")
     print("Extracting build data from sources")
-
     for target_build, prev_build in tqdm.tqdm(
         zip(islice(builds, 0, None), islice(builds, 1, None)),
-        desc="builds",
+        desc=f"builds for {from_date}",
         total=build_count,
     ):
         build_id = target_build["build"]["id"]
@@ -228,9 +261,24 @@ def main():
     print()
     print(f"Processed {df.shape[0]} records with {df.shape[1]} columns")
     print(f"Columns: {df.columns.to_list()}")
-
     df.to_parquet(outfile_name)
     print(f"Wrote {outfile_name}")
+
+
+def main():
+    logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
+
+    datasets = dataset_data()
+
+    for dataset in tqdm.tqdm(datasets, desc="datasets", total=len(datasets)):
+        if dataset.exists():
+            print(f"Skipping dataset {dataset.filepath}: file already exists")
+            continue
+
+        from_date = dataset.from_date
+        to_date = dataset.to_date
+        outfile_name = str(dataset.filepath)
+        make_dataset(from_date, to_date, outfile_name)
 
 
 class RetrievalError(Exception):
