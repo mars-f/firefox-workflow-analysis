@@ -44,7 +44,7 @@ http.headers.update({"User-Agent": "firefox-eng-metrics mars@mozilla.com"})
 class DataSet:
     """A dataset we want to work with."""
 
-    raw_datapath = Path("data")
+    raw_datapath = Path.cwd() / "data"
     dataset_filetmpl = "nightly-{}.parq"
 
     def __init__(self, from_date, to_date):
@@ -55,7 +55,7 @@ class DataSet:
     def filepath(self):
         # Format for year is "yyyy" and month is "MM".
         datestr = self.from_date.replace("-", "")
-        fn = Path(self.dataset_filetmpl.format(datestr))
+        fn = self.dataset_filetmpl.format(datestr)
         return self.raw_datapath / fn
 
     def exists(self):
